@@ -23,7 +23,7 @@ import core.wopiutils as utils
 
 
 # The supported plugins integrated with this WOPI Bridge
-BRIDGE_EXT_PLUGINS = {'md': 'codimd', 'txt': 'codimd', 'zmd': 'codimd', 'mds': 'codimd', 'epd': 'etherpad'}
+BRIDGE_EXT_PLUGINS = {'md': 'codimd', 'txt': 'codimd', 'zmd': 'codimd', 'mds': 'codimd', 'epd': 'etherpad', 'zep': 'etherpad'}
 
 # a standard message to be displayed by the app when some content might be lost: this would only
 # appear in case of uncaught exceptions or bugs handling the webhook callbacks
@@ -175,7 +175,7 @@ def appopen(wopisrc, acctok):
                                          'lastsave': int(time.time()) - WB.saveinterval,
                                          'toclose': {acctok[-20:]: False},
                                          'docid': wopilock['docid'],
-                                         'app': os.path.splitext(filemd['BaseFileName'])[1][1:],
+                                         'app': os.path.splitext(filemd['BaseFileName'])[1][1:],   # XXX translate to app
                                          }
             # also clear any potential stale response for this document
             try:
@@ -227,6 +227,7 @@ def appsave(docid):
                                      'lastsave': int(time.time() - WB.saveinterval),
                                      'toclose': {acctok[-20:]: isclose},
                                      'docid': docid,
+                                     'app': flask.request.remote_addr,
                                      }
             # if it's the first time we heard about this wopisrc, remove any potential stale response
             try:
@@ -305,7 +306,7 @@ class SaveThread(threading.Thread):
                             (openfile['acctok'][-20:], openfile['docid']))
                 try:
                     wopilock = WB.saveresponses[wopisrc] = wopic.relock(
-                        wopisrc, openfile['acctok'], openfile['docid'], _intersection(openfile['toclose']))
+                        wopisrc, openfile['acctok'], openfile['docid'], app, _intersection(openfile['toclose']))
                 except wopic.InvalidLock as ile:
                     # even this attempt failed, give up
                     WB.saveresponses[wopisrc] = wopic.jsonify(str(ile)), http.client.INTERNAL_SERVER_ERROR
